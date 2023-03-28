@@ -16,9 +16,23 @@ class ViewController: UICollectionViewController, UIImagePickerControllerDelegat
         
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addNewPerson))
         
+        //save business
+        let defaults = UserDefaults.standard
+
+        if let savedPeople = defaults.object(forKey: "people") as? Data {
+            let jsonDecoder = JSONDecoder()
+
+            do {
+                people = try jsonDecoder.decode([Person].self, from: savedPeople)
+            } catch {
+                print("Failed to load people")
+            }
+        }
+        
     }
     
     @objc func addNewPerson(){
+        
         let picker = UIImagePickerController()
         picker.allowsEditing = true
         picker.delegate = self
@@ -34,20 +48,22 @@ class ViewController: UICollectionViewController, UIImagePickerControllerDelegat
     override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "Person", for: indexPath) as? PersonCell else {
-            // we failed to get a PersonCell – bail out!
+         
             fatalError("Unable to dequeue PersonCell.")
         }
         
+        //Get the name
         let person = people[indexPath.item]
         cell.name.text = person.name
         
+        //Get the Image
         let path = getDocumentDirectory().appendingPathComponent(person.image)
         cell.imageView.image = UIImage(contentsOfFile: path.path)
         
         cell.imageView.layer.borderColor = UIColor(white: 0, alpha: 0.3).cgColor
-            cell.imageView.layer.borderWidth = 2
-            cell.imageView.layer.cornerRadius = 3
-            cell.layer.cornerRadius = 7
+        cell.imageView.layer.borderWidth = 2
+        cell.imageView.layer.cornerRadius = 3
+        cell.layer.cornerRadius = 7
         return cell
     }
     
@@ -63,6 +79,7 @@ class ViewController: UICollectionViewController, UIImagePickerControllerDelegat
             guard let newName = ac?.textFields?[0].text else {return}
             person.name = newName
             
+            self?.save()
             self?.collectionView.reloadData()
             
             
@@ -84,6 +101,9 @@ class ViewController: UICollectionViewController, UIImagePickerControllerDelegat
         
         let person = Person(name: "Unknown", image: imageName)
         people.append(person)
+        
+        //Call the save method before reloade.
+        save()
         collectionView.reloadData()
         
         dismiss(animated: true)
@@ -96,6 +116,17 @@ class ViewController: UICollectionViewController, UIImagePickerControllerDelegat
         
     }
     
+    //Save logic
+    
+    func save() {
+        let jsonEncoder = JSONEncoder()
+          if let savedData = try? jsonEncoder.encode(people) {
+              let defaults = UserDefaults.standard
+              defaults.set(savedData, forKey: "people")
+          } else {
+              print("Failed to save people.")
+          }
+    }
     
     
 }
